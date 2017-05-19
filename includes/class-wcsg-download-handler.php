@@ -37,19 +37,24 @@ class WCSG_Download_Handler {
 	 */
 	public static function get_item_download_links( $files, $item, $order ) {
 
-		if ( ! empty( $order->recipient_user ) ) {
-			$subscription_recipient = get_user_by( 'id', $order->recipient_user );
-			$user_id                = ( wcs_is_subscription( $order ) && wcs_is_view_subscription_page() ) ? get_current_user_id() : $order->customer_user;
+	  $order_id = $order->get_id();
+    $recipient = get_post_meta($order_id, '_recipient_user', true);
+
+		if ( ! empty( $recipient ) ) {
+
+			$subscription_recipient = $recipient;
+			$user_id                = ( wcs_is_subscription( $order ) && wcs_is_view_subscription_page() ) ? get_current_user_id() : $order->get_customer_id();
 			$mailer                 = WC()->mailer();
 
 			foreach ( $mailer->emails as $email ) {
 				if ( isset( $email->wcsg_sending_recipient_email ) ) {
-					$user_id = $order->recipient_user;
+					$user_id = $recipient;
 					break;
 				}
 			}
 
 			$files = self::get_user_downloads_for_order_item( $order, $user_id, $item );
+
 		}
 		return $files;
 	}
@@ -126,7 +131,7 @@ class WCSG_Download_Handler {
 
 		if ( WCS_Gifting::is_gifted_subscription( $subscription ) ) {
 
-			self::$subscription_download_permissions = self::get_subscription_download_permissions( $subscription->id );
+			self::$subscription_download_permissions = self::get_subscription_download_permissions( $subscription->get_id() );
 		}
 	}
 
@@ -381,7 +386,7 @@ class WCSG_Download_Handler {
 			WHERE user_id = %d
 			AND order_id = %d
 			AND product_id = %d
-		", $user_id, $order->id, $product_id ) );
+		", $user_id, $order->get_id(), $product_id ) );
 
 		$files   = array();
 		$product = wc_get_product( $product_id );
